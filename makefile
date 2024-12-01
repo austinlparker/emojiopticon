@@ -7,6 +7,7 @@ DATA_DIR = /var/lib/$(SERVICE_NAME)
 SERVICE_USER = $(SERVICE_NAME)
 SERVICE_GROUP = $(SERVICE_NAME)
 BINARY_NAME = bsky-frequency-analyzer
+PORT = 3000
 
 # Try to get OPENAI_API_KEY from environment, or prompt for it
 OPENAI_API_KEY ?= $(shell bash -c 'read -p "OpenAI API Key: " key; echo $$key')
@@ -18,6 +19,7 @@ INSTALL = install
 MKDIR = mkdir -p
 CHOWN = chown
 CHMOD = chmod
+UFW = ufw
 
 # Check if running as root
 ifeq ($(shell id -u),0)
@@ -26,7 +28,7 @@ else
 	SUDO = sudo
 endif
 
-.PHONY: all build install clean uninstall restart status logs create_user create_dirs copy_files setup_service setup_env
+.PHONY: all build install clean uninstall restart status logs create_user create_dirs copy_files setup_service setup_env setup_firewall
 
 all: build install
 
@@ -35,7 +37,7 @@ build:
 	$(CARGO) build --release
 
 # Install everything
-install: create_user create_dirs setup_env copy_files setup_service
+install: create_user create_dirs setup_env copy_files setup_firewall setup_service
 
 # Create service user first
 create_user:
@@ -56,6 +58,12 @@ setup_env:
 	@echo "OPENAI_API_KEY=$(OPENAI_API_KEY)" | $(SUDO) tee $(CONFIG_DIR)/environment > /dev/null
 	$(SUDO) $(CHOWN) $(SERVICE_USER):$(SERVICE_GROUP) $(CONFIG_DIR)/environment
 	$(SUDO) $(CHMOD) 600 $(CONFIG_DIR)/environment
+
+setup_firewall:
+	@echo "Configuring firewall..."
+	$(SUDO) $(UFW) status | grep -q "Status: active" || (echo "Enabling UFW..." && $(SUDO) $(UFW) enable)
+	$(SUDO) $(UFW) allow $(PORT)/tcp comment "$(SERVICE_NAME) web interface"
+	$(SUDO) $(UFW) reload
 
 copy_files: create_dirs
 	$(SUDO) $(INSTALL) -m 755 target/release/$(BINARY_NAME) $(INSTALL_DIR)/$(SERVICE_NAME)
@@ -88,15 +96,18 @@ uninstall:
 	-$(SUDO) rm -rf $(DATA_DIR)
 	-$(SUDO) userdel $(SERVICE_USER)
 	-$(SUDO) groupdel $(SERVICE_GROUP)
+	-$(SUDO) $(UFW) delete allow $(PORT)/tcp
 	$(SUDO) $(SYSTEMCTL) daemon-reload
 
 # Restart the service
 restart:
 	$(SUDO) $(SYSTEMCTL) restart $(SERVICE_NAME)
 
-# Check service status
+# Check status
 status:
 	$(SUDO) $(SYSTEMCTL) status $(SERVICE_NAME)
+	@echo "\nFirewall status:"
+	$(SUDO) $(UFW) status | grep $(PORT)
 
 # View logs
 logs:
@@ -105,4 +116,4 @@ logs:
 # Development helpers
 dev-deps:
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y build-essential pkg-config libssl-dev
+	$(SUDO) apt-get install -y build-essential pkg-config libssl-dev ufw
