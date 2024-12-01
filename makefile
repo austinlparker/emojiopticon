@@ -36,7 +36,10 @@ install: create_user create_dirs copy_files setup_service
 
 # Create service user first
 create_user:
-	$(SUDO) id -u $(SERVICE_USER) &>/dev/null || ($(SUDO) useradd -r -s /bin/false $(SERVICE_USER) && $(SUDO) groupadd -f $(SERVICE_GROUP))
+	$(SUDO) groupadd -f $(SERVICE_GROUP) || true
+	$(SUDO) useradd -r -s /bin/false -g $(SERVICE_GROUP) $(SERVICE_USER) || true
+	# Verify user exists
+	$(SUDO) id $(SERVICE_USER)
 
 create_dirs: create_user
 	$(SUDO) $(MKDIR) $(INSTALL_DIR)
@@ -65,15 +68,16 @@ clean:
 
 # Uninstall everything
 uninstall:
-	$(SUDO) $(SYSTEMCTL) stop $(SERVICE_NAME)
-	$(SUDO) $(SYSTEMCTL) disable $(SERVICE_NAME)
-	$(SUDO) rm -f /etc/systemd/system/$(SERVICE_NAME).service
-	$(SUDO) rm -f /etc/logrotate.d/$(SERVICE_NAME)
-	$(SUDO) rm -rf $(INSTALL_DIR)
-	$(SUDO) rm -rf $(CONFIG_DIR)
-	$(SUDO) rm -rf $(LOG_DIR)
-	$(SUDO) rm -rf $(DATA_DIR)
-	$(SUDO) userdel $(SERVICE_USER)
+	-$(SUDO) $(SYSTEMCTL) stop $(SERVICE_NAME)
+	-$(SUDO) $(SYSTEMCTL) disable $(SERVICE_NAME)
+	-$(SUDO) rm -f /etc/systemd/system/$(SERVICE_NAME).service
+	-$(SUDO) rm -f /etc/logrotate.d/$(SERVICE_NAME)
+	-$(SUDO) rm -rf $(INSTALL_DIR)
+	-$(SUDO) rm -rf $(CONFIG_DIR)
+	-$(SUDO) rm -rf $(LOG_DIR)
+	-$(SUDO) rm -rf $(DATA_DIR)
+	-$(SUDO) userdel $(SERVICE_USER)
+	-$(SUDO) groupdel $(SERVICE_GROUP)
 	$(SUDO) $(SYSTEMCTL) daemon-reload
 
 # Restart the service
