@@ -23,7 +23,7 @@ else
 	SUDO = sudo
 endif
 
-.PHONY: all build install clean uninstall restart status logs
+.PHONY: all build install clean uninstall restart status logs create_user create_dirs copy_files setup_service
 
 all: build install
 
@@ -32,17 +32,19 @@ build:
 	$(CARGO) build --release
 
 # Install everything
-install: create_dirs copy_files setup_service
+install: create_user create_dirs copy_files setup_service
 
-create_dirs:
+# Create service user first
+create_user:
+	$(SUDO) id -u $(SERVICE_USER) &>/dev/null || ($(SUDO) useradd -r -s /bin/false $(SERVICE_USER) && $(SUDO) groupadd -f $(SERVICE_GROUP))
+
+create_dirs: create_user
 	$(SUDO) $(MKDIR) $(INSTALL_DIR)
 	$(SUDO) $(MKDIR) $(CONFIG_DIR)
 	$(SUDO) $(MKDIR) $(LOG_DIR)
 	$(SUDO) $(MKDIR) $(DATA_DIR)
-	# Create service user if it doesn't exist
-	$(SUDO) id -u $(SERVICE_USER) &>/dev/null || $(SUDO) useradd -r -s /bin/false $(SERVICE_USER)
 
-copy_files:
+copy_files: create_dirs
 	$(SUDO) $(INSTALL) -m 755 target/release/$(BINARY_NAME) $(INSTALL_DIR)/$(SERVICE_NAME)
 	$(SUDO) $(INSTALL) -m 644 config/prompts.toml $(CONFIG_DIR)/prompts.toml
 	$(SUDO) $(INSTALL) -m 644 deploy/$(SERVICE_NAME).service /etc/systemd/system/
@@ -70,6 +72,8 @@ uninstall:
 	$(SUDO) rm -rf $(INSTALL_DIR)
 	$(SUDO) rm -rf $(CONFIG_DIR)
 	$(SUDO) rm -rf $(LOG_DIR)
+	$(SUDO) rm -rf $(DATA_DIR)
+	$(SUDO) userdel $(SERVICE_USER)
 	$(SUDO) $(SYSTEMCTL) daemon-reload
 
 # Restart the service
