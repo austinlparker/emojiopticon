@@ -18,9 +18,9 @@ CHMOD = chmod
 
 # Check if running as root
 ifeq ($(shell id -u),0)
-    SUDO =
+	SUDO =
 else
-    SUDO = sudo
+	SUDO = sudo
 endif
 
 .PHONY: all build install clean uninstall restart status logs
@@ -35,12 +35,12 @@ build:
 install: create_dirs copy_files setup_service
 
 create_dirs:
-    $(SUDO) $(MKDIR) $(INSTALL_DIR)
-    $(SUDO) $(MKDIR) $(CONFIG_DIR)
-    $(SUDO) $(MKDIR) $(LOG_DIR)
-    $(SUDO) $(MKDIR) $(DATA_DIR)
-    # Create service user if it doesn't exist
-    $(SUDO) id -u $(SERVICE_USER) &>/dev/null || $(SUDO) useradd -r -s /bin/false $(SERVICE_USER)
+	$(SUDO) $(MKDIR) $(INSTALL_DIR)
+	$(SUDO) $(MKDIR) $(CONFIG_DIR)
+	$(SUDO) $(MKDIR) $(LOG_DIR)
+	$(SUDO) $(MKDIR) $(DATA_DIR)
+	# Create service user if it doesn't exist
+	$(SUDO) id -u $(SERVICE_USER) &>/dev/null || $(SUDO) useradd -r -s /bin/false $(SERVICE_USER)
 
 copy_files:
 	$(SUDO) $(INSTALL) -m 755 target/release/$(BINARY_NAME) $(INSTALL_DIR)/$(SERVICE_NAME)
