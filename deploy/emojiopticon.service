@@ -1,0 +1,28 @@
+[Unit]
+Description=Bluesky Emoji Usage Analyzer
+After=network.target
+
+[Service]
+Type=simple
+User=emojiopticon
+Group=emojiopticon
+ExecStart=/opt/emojiopticon/emojiopticon --config /etc/emojiopticon/prompts.toml
+Restart=always
+RestartSec=5
+
+
+Environment=RUST_LOG=info
+Environment=OPENAI_API_KEY=${OPENAI_API_KEY}
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ReadWritePaths=/etc/emojiopticon /var/lib/emojiopticon
+
+StandardOutput=append:/var/log/emojiopticon/stdout.log
+StandardError=append:/var/log/emojiopticon/stderr.log
+
+[Install]
+WantedBy=multi-user.target
