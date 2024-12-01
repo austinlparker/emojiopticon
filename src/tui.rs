@@ -28,8 +28,9 @@ pub struct Tui {
 impl Tui {
     pub async fn new(
         ops_rx: watch::Receiver<usize>,
+        port: u16,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let listener = TcpListener::bind("0.0.0.0:3000").await?;
+        let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
         let (tx, _) = broadcast::channel(16);
 
         let metrics = Metrics {
@@ -37,7 +38,7 @@ impl Tui {
             ops_per_sec: ops_rx,
         };
 
-        println!("Server listening on port 3000");
+        println!("Server listening on port {}", port);
         Ok(Self {
             listener,
             tx,

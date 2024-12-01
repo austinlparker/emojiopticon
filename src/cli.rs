@@ -8,4 +8,6 @@ pub struct Args {
     pub config: String,
     #[arg(short, long, default_value = "/var/lib/emojiopticon")]
     pub data: String,
+    #[arg(short, long, default_value_t = 1337)]
+    pub port: u16,
 }

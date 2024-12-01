@@ -106,7 +106,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     });
 
     // Run TUI server
-    let tui = Tui::new(ops_rx).await?;
+    let tui = Tui::new(ops_rx, args.port).await?;
 
     tui.run(app).await?;
 

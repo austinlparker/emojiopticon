@@ -6,21 +6,20 @@ After=network.target
 Type=simple
 User=emojiopticon
 Group=emojiopticon
-ExecStart=/opt/emojiopticon/emojiopticon --config /etc/emojiopticon/prompts.toml
+EnvironmentFile=/etc/emojiopticon/environment
+ExecStart=/opt/emojiopticon/emojiopticon --config /etc/emojiopticon/prompts.toml --port 1337
 Restart=always
 RestartSec=5
 
-
-Environment=RUST_LOG=info
-Environment=OPENAI_API_KEY=${OPENAI_API_KEY}
-
+# Security measures
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
 PrivateDevices=true
-ReadWritePaths=/etc/emojiopticon /var/lib/emojiopticon
+ReadWritePaths=/etc/emojiopticon /var/lib/emojiopticon /var/log/emojiopticon
 
+# Logging
 StandardOutput=append:/var/log/emojiopticon/stdout.log
 StandardError=append:/var/log/emojiopticon/stderr.log
 

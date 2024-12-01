@@ -8,6 +8,9 @@ SERVICE_USER = $(SERVICE_NAME)
 SERVICE_GROUP = $(SERVICE_NAME)
 BINARY_NAME = bsky-frequency-analyzer
 
+# Try to get OPENAI_API_KEY from environment, or prompt for it
+OPENAI_API_KEY ?= $(shell bash -c 'read -p "OpenAI API Key: " key; echo $$key')
+
 # Commands
 CARGO = cargo
 SYSTEMCTL = systemctl
@@ -23,7 +26,7 @@ else
 	SUDO = sudo
 endif
 
-.PHONY: all build install clean uninstall restart status logs create_user create_dirs copy_files setup_service
+.PHONY: all build install clean uninstall restart status logs create_user create_dirs copy_files setup_service setup_env
 
 all: build install
 
@@ -32,7 +35,7 @@ build:
 	$(CARGO) build --release
 
 # Install everything
-install: create_user create_dirs copy_files setup_service
+install: create_user create_dirs setup_env copy_files setup_service
 
 # Create service user first
 create_user:
@@ -46,6 +49,13 @@ create_dirs: create_user
 	$(SUDO) $(MKDIR) $(CONFIG_DIR)
 	$(SUDO) $(MKDIR) $(LOG_DIR)
 	$(SUDO) $(MKDIR) $(DATA_DIR)
+
+setup_env:
+	@echo "Setting up environment file..."
+	$(SUDO) touch $(CONFIG_DIR)/environment
+	@echo "OPENAI_API_KEY=$(OPENAI_API_KEY)" | $(SUDO) tee $(CONFIG_DIR)/environment > /dev/null
+	$(SUDO) $(CHOWN) $(SERVICE_USER):$(SERVICE_GROUP) $(CONFIG_DIR)/environment
+	$(SUDO) $(CHMOD) 600 $(CONFIG_DIR)/environment
 
 copy_files: create_dirs
 	$(SUDO) $(INSTALL) -m 755 target/release/$(BINARY_NAME) $(INSTALL_DIR)/$(SERVICE_NAME)
